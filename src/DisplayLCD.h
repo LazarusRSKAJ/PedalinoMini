@@ -1,11 +1,12 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
 
 #define LCD_ROWS  2
@@ -13,7 +14,6 @@
 
 #define LCD_LINE1_PERSISTENCE   1500;
 
-#ifdef NOLCD
 #define lcdClear(...)
 #define lcdSetCursor(...)
 #define lcdPrint(...)
@@ -21,7 +21,7 @@
 #define lcdWrite(...)
 #define lcdCursor(...)
 #define lcdNoCursor(...)
-#else
+/*
 #define lcdClear(...)       lcd.clear( __VA_ARGS__ )
 #define lcdSetCursor(...)   lcd.setCursor( __VA_ARGS__ )
 #define lcdPrint(...)       lcd.print( __VA_ARGS__ )
@@ -29,7 +29,7 @@
 #define lcdWrite(...)       lcd.write( __VA_ARGS__ )
 #define lcdCursor(...)      lcd.cursor( __VA_ARGS__ )
 #define lcdNoCursor(...)    lcd.noCursor( __VA_ARGS__ )
-#endif
+*/
 
 bool powerPlug     = false;
 bool batteryLow    = false;

@@ -1,11 +1,12 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
 
 //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    /*
@@ -455,28 +456,22 @@ void MidiTimeCode::setBeat(byte signature)
   mTimeSignature = signature;
 }
 
-void IRAM_ATTR ISR()
+void ISR()
 {
-  portENTER_CRITICAL_ISR(&MidiTimeCode::mTimerMux);
   MidiTimeCode::mInterruptCounter++;
-  portEXIT_CRITICAL_ISR(&MidiTimeCode::mTimerMux);
 }
+
 
 void MidiTimeCode::setTimer(const double frequency)
 {
-  mTimer = timerBegin(0, 80, true);
-  timerAttachInterrupt(mTimer, &ISR, true);
-  timerAlarmWrite(mTimer, 1000000/frequency, true);
-  timerAlarmEnable(mTimer);
+  mTimer.attach_ms(1000/frequency, ISR);
 }
 
 void MidiTimeCode::loop()
 {
   if (mInterruptCounter > 0) {
 
-    portENTER_CRITICAL(&mTimerMux);
     mInterruptCounter--;
-    portEXIT_CRITICAL(&mTimerMux);
 
     if ( MidiTimeCode::getMode() == MidiTimeCode::SynchroMTCMaster )
       MidiTimeCode::doSendMTC();
@@ -485,8 +480,8 @@ void MidiTimeCode::loop()
   }
 }
 
-hw_timer_t             *MidiTimeCode::mTimer = NULL;
-portMUX_TYPE            MidiTimeCode::mTimerMux = portMUX_INITIALIZER_UNLOCKED;
+Ticker                  MidiTimeCode::mTimer;
+
 unsigned char           MidiTimeCode::mSelectBits = 0;
 volatile int            MidiTimeCode::mInterruptCounter = 0;
 

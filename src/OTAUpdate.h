@@ -1,29 +1,21 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
-
 
 #ifdef NOWIFI
 #define ota_begin(...)
 #define ota_handle(...)
 #else
 
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#endif
-
 #include <ArduinoOTA.h>
 
 void ota_begin(const char *hostname) {
@@ -33,10 +25,11 @@ void ota_begin(const char *hostname) {
 
   ArduinoOTA.onStart([]() {
     blynk_disconnect();
+#ifdef WEBSOCKET
     webSocket.enable(false);
     webSocket.textAll("OTA Update Started");
     webSocket.closeAll();
-
+#endif
     display.clear();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);

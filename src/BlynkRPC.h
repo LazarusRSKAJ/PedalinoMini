@@ -1,19 +1,22 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
-
 
 #ifdef NOBLYNK
 inline String blynk_get_token() { return String("                                "); }
 inline String blynk_set_token(String token) { return token; }
-inline void blynk_setup();
-inline bool blynk_cloud_connected() {}
+inline void blynk_setup() {}
+inline void blynk_enable() {}
+inline void blynk_disable() {}
+inline bool blynk_enabled() { return false; }
+inline bool blynk_cloud_connected() { return false; }
 inline void blynk_config() {}
 inline void blynk_connect() {}
 inline void blynk_disconnect() {}
@@ -30,16 +33,10 @@ inline void blynk_refresh() {}
 //#define BLYNK_DEBUG                     // Optional, this enables more detailed prints
 #endif
 
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESP8266WiFi.h>
-#include <BlynkSimpleEsp8266.h>
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef WIFI
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
-#include <esp32-hal-timer.h>
 #endif
 
 #define BLYNK_PROFILE               V1
@@ -96,31 +93,11 @@ WidgetLCD  blynkLCD(V0);
 String     ssid("");
 String     password("");
 
-void screen_update(bool);
-void eeprom_update_current_profile(byte);
-bool auto_reconnect(String ssid = "", String password = "");
-bool smart_config();
-bool ap_connect(String ssid = "", String password = "");
-String translateEncryptionType(wifi_auth_mode_t);
-
-hw_timer_t   *_timer3 = NULL;
-portMUX_TYPE  _timer3Mux = portMUX_INITIALIZER_UNLOCKED;
-volatile int  _interruptCounter3 = 0;
-
-void IRAM_ATTR onTimer3_isr()
-{
-  portENTER_CRITICAL_ISR(&_timer3Mux);
-  _interruptCounter3++;
-  portEXIT_CRITICAL_ISR(&_timer3Mux);
-}
 
 void blynk_setup()
 {
   // Setup a 1Hz timer
-  _timer3 = timerBegin(2, 80, true);
-  timerAttachInterrupt(_timer3, &onTimer3_isr, true);
-  timerAlarmWrite(_timer3, 1000000/1, true);
-  timerAlarmEnable(_timer3);
+  Timer3Attach(1000);
 }
 
 void blynk_enable()
@@ -160,13 +137,23 @@ void blynk_connect()
 {
   static unsigned long lastFail = 0;
 
-  if (!blynkEnabled || (lastFail > 0) && (millis() - lastFail < BLYNK_RETRY_CONNECTION*1000)) return;
+  if (!blynkEnabled || ((lastFail > 0) && (millis() - lastFail < BLYNK_RETRY_CONNECTION*1000))) return;
 
+#ifdef WIFI
   // Connect to Blynk Cloud
   if (WiFi.getMode() != WIFI_AP && strlen(blynkAuthToken) == BLYNK_AUTHTOKEN_LEN) {
     Blynk.config(blynkAuthToken);
     lastFail = Blynk.connect() ? 0 : millis();
   }
+#endif
+#ifdef BLE
+  // Connect to Blynk Cloud
+  /*
+  blynkEnabled = true;
+  Blynk.begin("522b382dbdfc411891aac707d106b293");
+  lastFail = 0;
+  */
+#endif
 }
 
 void blynk_disconnect()
@@ -178,22 +165,19 @@ void blynk_disconnect()
 
 inline void blynk_run()
 {
-  if (_interruptCounter3 > 0) {
+  if (interruptCounter3 > 0) {
 
-    portENTER_CRITICAL(&_timer3Mux);
-    _interruptCounter3 = 0;
-    portEXIT_CRITICAL(&_timer3Mux);
+    interruptCounter3 = 0;
 
     if (!blynkEnabled) return;
 
-    unsigned long a = micros();
+#ifdef WIFI
     if (Blynk.connected()) {
       Blynk.run();
-    } 
+    }
     else if (WiFi.isConnected())
       blynk_connect();
-    unsigned long b = micros();
-    DPRINT("%d ", b-a);
+#endif
   }
 }
 
@@ -635,14 +619,6 @@ BLYNK_WRITE(BLYNK_PEDAL_POLARITY) {
   pedals[currentPedal].invertPolarity = polarity;
 }
 
-BLYNK_WRITE(BLYNK_PEDAL_CALIBRATE) {
-  int calibration = param.asInt();
-  PRINT_VIRTUAL_PIN(request.pin);
-  DPRINT(" - Calibrate %d\n", calibration);
-  if (calibration && pedals[currentPedal].mode == PED_ANALOG) calibrate();
-  blynk_refresh_pedal();
-}
-
 BLYNK_WRITE(BLYNK_PEDAL_ANALOGZERO) {
   int analogzero = param.asInt();
   PRINT_VIRTUAL_PIN(request.pin);
@@ -760,12 +736,7 @@ BLYNK_WRITE(BLYNK_SCANWIFI) {
       DPRINTLN("%d network(s) found", networksFound);
       BlynkParamAllocated items(512); // list length, in bytes
       for (int i = 0; i < networksFound; i++) {
-#ifdef ARDUINO_ARCH_ESP8266
-        DPRINTLN("%2d.\n BSSID: %s\n SSID: %s\n Channel: %d\n Signal: %d dBm\n", i + 1, WiFi.BSSIDstr(i).c_str(), WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i));
-#endif
-#ifdef ARDUINO_ARCH_ESP32
         DPRINTLN("%2d.\n BSSID: %s\n SSID: %s\n Channel: %d\n Signal: %d dBm\n Auth Mode: %s", i + 1, WiFi.BSSIDstr(i).c_str(), WiFi.SSID(i).c_str(), WiFi.channel(i), WiFi.RSSI(i), translateEncryptionType(WiFi.encryptionType(i)).c_str());
-#endif
         items.add(WiFi.SSID(i).c_str());
       }
       Blynk.setProperty(BLYNK_SSID, "labels", items);

@@ -1,11 +1,12 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
 
 //                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    /*
@@ -15,8 +16,8 @@
 #ifndef _MIDI_CLOCK_MTC_H_
 #define _MIDI_CLOCK_MTC_H_
 
-#include <esp32-hal-timer.h>
 #include <Arduino.h>
+#include <Ticker.h>
 
 // TAP_NUM_READINGS doesn't mean we have to wait for this many samples
 // to change BPM, just that smoothing operates on this value.
@@ -94,8 +95,7 @@ class MidiTimeCode
     static void doSendMidiClock();
     static void doSendMTC();
 
-    static hw_timer_t                *mTimer;
-    static portMUX_TYPE               mTimerMux;
+    static Ticker                     mTimer;
     static volatile int               mInterruptCounter;
 
   private:

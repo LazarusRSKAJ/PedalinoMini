@@ -1,11 +1,12 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
 
 #include <Arduino.h>
@@ -13,21 +14,16 @@
 #ifndef _PEDALINO_H
 #define _PEDALINO_H
 
-#define MODEL     "PedalinoMini™"      
+#define MODEL           "PedalinoMini™"      
 #define INTERFACES        6
 #define PROFILES          3
 #define BANKS            10
+#define PEDALS            6
+#define SEQUENCES        16
+#define STEPS            10   // number of steps for each sequence
 
-#ifdef ARDUINO_ARCH_ESP8266
-#define PEDALS             1
-const byte pinD[] = {2};
-const byte pinA[] = {2};
-#define FACTORY_DEFAULT_PIN   GPIO_NUM_0
-#endif
+#define MAXPEDALNAME     10
 
-#ifdef ARDUINO_ARCH_ESP32
-#define PEDALS             6
-#define MAXPEDALNAME      10
 // https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 // GPIOs 34 to 39 are GPIs – input only pins.
 // These pins don’t have internal pull-ups or pull-down resistors. 
@@ -35,11 +31,15 @@ const byte pinD[] = {GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_14, GPIO_NU
 const byte pinA[] = {GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_34, GPIO_NUM_35, GPIO_NUM_32, GPIO_NUM_33};
 
 #ifdef TTGO_T_EIGHT
-#define FACTORY_DEFAULT_PIN   GPIO_NUM_35
+#define FACTORY_DEFAULT_PIN   GPIO_NUM_38   // Right 37   Center 38   Left 39
 #else
 #define FACTORY_DEFAULT_PIN   GPIO_NUM_0
 #endif
-#endif
+#define BATTERY_PIN           GPIO_NUM_34
+
+#define RIGHT_PIN             GPIO_NUM_37
+#define CENTER_PIN            GPIO_NUM_38
+#define LEFT_PIN              GPIO_NUM_39
 
 #define PIN_D(x)          pinD[x]
 #define PIN_A(x)          pinA[x]
@@ -57,14 +57,22 @@ typedef uint8_t   byte;
 
 #include "MidiTimeCode.h"
 
-#define PED_PROGRAM_CHANGE      0
-#define PED_CONTROL_CHANGE      1
-#define PED_NOTE_ON_OFF         2
-#define PED_PITCH_BEND          3
-#define PED_BANK_SELECT_INC     4
-#define PED_BANK_SELECT_DEC     5
-#define PED_PROGRAM_CHANGE_INC  6
-#define PED_PROGRAM_CHANGE_DEC  7
+#define PED_BOOT_NORMAL         0
+#define PED_BOOT_BLE            1
+#define PED_BOOT_WIFI           2
+#define PED_BOOT_AP             3
+#define PED_BOOT_AP_NO_BLE      4
+#define PED_FACTORY_DEFAULT     5
+
+#define PED_PROGRAM_CHANGE      1
+#define PED_CONTROL_CHANGE      2
+#define PED_NOTE_ON_OFF         3
+#define PED_PITCH_BEND          4
+#define PED_BANK_SELECT_INC     5
+#define PED_BANK_SELECT_DEC     6
+#define PED_PROGRAM_CHANGE_INC  7
+#define PED_PROGRAM_CHANGE_DEC  8
+#define PED_SEQUENCE            9
 
 #define PED_NONE                0
 #define PED_MOMENTARY1          1
@@ -141,14 +149,15 @@ typedef uint8_t   byte;
 
 struct bank {
   char                   pedalName[MAXPEDALNAME+1];
-  byte                   midiMessage;     /* 0 = Program Change,
-                                             1 = Control Code
-                                             2 = Note On/Note Off
-                                             3 = Pitch Bend 
-                                             4 = Bank Select+
-                                             5 = Bank Select-
-                                             6 = Program Change+
-                                             7 = Program Change- */
+  byte                   midiMessage;     /* 1 = Program Change,
+                                             2 = Control Code
+                                             3 = Note On/Note Off
+                                             4 = Pitch Bend 
+                                             5 = Bank Select+
+                                             6 = Bank Select-
+                                             7 = Program Change+
+                                             8 = Program Change-
+                                             9 = Sequence */
   byte                   midiChannel;     /* MIDI channel 1-16 */
   byte                   midiCode;        /* Program Change, Control Code, Note or Pitch Bend value to send */
   byte                   midiValue1;      /* Single click */
@@ -176,13 +185,13 @@ struct pedal {
                                              6 = momentary 3
                                              7 = latch 2
                                              8 = ladder */
-  byte                   pressMode;       /* 0 = single click
-                                             1 = double click
-                                             2 = long click
+  byte                   pressMode;       /* 1 = single click
+                                             2 = double click
+                                             4 = long click
                                              3 = single and double click
-                                             4 = single and long click
-                                             5 = single, double and long click
-                                             6 = double and long click */
+                                             5 = single and long click
+                                             6 = double and long click
+                                             7 = single, double and long click */
   byte                   invertPolarity;
   byte                   mapFunction;
   int                    expZero;
@@ -203,19 +212,52 @@ struct interface {
   byte                   midiClock;       // 0 = disable, 1 = enable
 };
 
+struct sequence {
+  byte                   midiMessage;     /* 0 = None
+                                             1 = Program Change,
+                                             2 = Control Code
+                                             3 = Note On/Note Off
+                                             4 = Pitch Bend 
+                                             5 = Bank Select+
+                                             6 = Bank Select-
+                                             7 = Program Change+
+                                             8 = Program Change-
+                                             9 = Sequence */
+  byte                   midiChannel;     /* MIDI channel 1-16 */
+  byte                   midiCode;        /* Program Change, Control Code, Note or Pitch Bend value to send */
+  byte                   midiValue1;      /* Single click */
+  byte                   midiValue2;      /* Double click */
+  byte                   midiValue3;      /* Long click */
+};
+
+struct message {
+  byte                   midiMessage;     /* 0 = None
+                                             1 = Program Change,
+                                             2 = Control Code
+                                             3 = Note On/Note Off
+                                             4 = Pitch Bend 
+                                             5 = Bank Select+
+                                             6 = Bank Select-
+                                             7 = Program Change+
+                                             8 = Program Change-
+                                             9 = Sequence */
+  byte                   midiCode;        /* Program Change, Control Code, Note or Pitch Bend value to send */
+  byte                   midiValue;       /* Control Code value, Note velocity */
+  byte                   midiChannel;     /* MIDI channel 1-16 */
+};
+
+#ifdef __BOARD_HAS_PSRAM__
+bank**      banks;
+pedal*      pedals;
+sequence**  sequences;
+message*    lastMIDIMessage;
+#else
 bank      banks[BANKS][PEDALS];                   // Banks Setup
 pedal     pedals[PEDALS];                         // Pedals Setup
+sequence  sequences[SEQUENCES][STEPS];            // Sequences Setup
+message   lastMIDIMessage[BANKS]; 
+#endif
 
-#ifdef PEDALINO_MINI
-interface interfaces[] = {
-                           "USB MIDI   ", 0, 0, 0, 0, 0,    // Not present in PedalinoMini
-                           "Legacy MIDI", 0, 0, 0, 0, 0,    // Not present in PedalinoMini
-                           "RTP-MIDI   ", 1, 1, 0, 1, 0,
-                           "ipMIDI     ", 1, 1, 0, 1, 0,
-                           "BLE MIDI   ", 1, 1, 0, 1, 0,
-                           "OSC        ", 1, 1, 0, 1, 0
-                          };                       // Interfaces Setup
-#else
 interface interfaces[] = {
                            "USB MIDI   ", 1, 1, 0, 1, 0,
                            "Legacy MIDI", 1, 1, 0, 1, 0,
@@ -224,9 +266,13 @@ interface interfaces[] = {
                            "BLE MIDI   ", 1, 1, 0, 1, 0,
                            "OSC        ", 1, 1, 0, 1, 0
                           };                       // Interfaces Setup
-#endif
 
-byte  currentProfile          = 0;
+bool      repeatOnBankSwitch = false;
+
+byte bootMode                 = PED_BOOT_NORMAL;
+volatile byte currentProfile  = 0;
+volatile bool reloadProfile   = true;
+volatile bool saveProfile     = false;
 byte  currentBank             = 0;
 byte  currentPedal            = 0;
 byte  currentInterface        = PED_USBMIDI;
@@ -240,7 +286,16 @@ byte  timeSignature           = PED_TIMESIGNATURE_4_4;
 MidiTimeCode  MTC;
 unsigned int  bpm             = 120;
 
-byte  backlight               = 150;
+#ifdef WIFI
+bool  wifiEnabled             = true;
+#else
+bool  wifiEnabled             = false;
+#endif
+#ifdef BLE
+bool  bleEnabled              = true;
+#else
+bool  bleEnabled              = false;
+#endif
 bool  wifiConnected           = false;
 bool  bleConnected            = false;
 
@@ -249,28 +304,28 @@ String wifiPassword("");
 
 // Serial MIDI interface to comunicate with Arduino
 
-#define SERIALMIDI_BAUD_RATE  115200
+#define MIDI_BAUD_RATE                  31250
+#define HIGH_SPEED_SERIAL_BAUD_RATE     1000000
 
-struct SerialMIDISettings : public midi::DefaultSettings
+struct Serial1MIDISettings : public midi::DefaultSettings
 {
-  static const long BaudRate = SERIALMIDI_BAUD_RATE;
+  static const long BaudRate = MIDI_BAUD_RATE;
+  static const int8_t RxPin  = 18;
+  static const int8_t TxPin  = 19;
 };
 
-#ifdef ARDUINO_ARCH_ESP8266
-#define SerialMIDI            Serial
-#endif
+struct Serial2MIDISettings : public midi::DefaultSettings
+{
+  static const long BaudRate = MIDI_BAUD_RATE;
+  static const int8_t RxPin  = 15;
+  static const int8_t TxPin  = 4;
+};
 
-#ifdef ARDUINO_ARCH_ESP32
-#define SERIALMIDI_RX         16
-#define SERIALMIDI_TX         17
-HardwareSerial                SerialMIDI(2);
-#endif
+#define SERIAL_MIDI_USB   Serial1
+#define SERIAL_MIDI_DIN   Serial2
 
-MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, SerialMIDI, MIDI, SerialMIDISettings);
-
-#define USB_MIDI  MIDI
-#define DIN_MIDI  MIDI
-#define ESP_MIDI  MIDI
+MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, SERIAL_MIDI_USB, USB_MIDI, Serial1MIDISettings);
+MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, SERIAL_MIDI_DIN, DIN_MIDI, Serial2MIDISettings);
 
 // The keys value that works for most LCD Keypad Shield
 
@@ -285,13 +340,7 @@ MD_UISwitch_Analog::uiAnalogKeys_t kt[] =
 
 bool powersaver = false;
 
-#if defined(ARDUINO_ARCH_ESP8266) && defined(DEBUG_ESP_PORT)
-#define SERIALDEBUG       DEBUG_ESP_PORT
-#define DPRINT(...)       DEBUG_ESP_PORT.printf( __VA_ARGS__ )
-#define DPRINTLN(...)     { DEBUG_ESP_PORT.printf( __VA_ARGS__ ); DEBUG_ESP_PORT.println(); }
-#endif
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(DEBUG_ESP_PORT)
+#ifdef DEBUG_ESP_PORT
 #include <esp_log.h>
 #define SERIALDEBUG       Serial
 #define LOG_TAG           "PedalinoESP"
@@ -318,12 +367,7 @@ RemoteDebug Debug;
 #endif
 
 String getChipId() {
-#ifdef ARDUINO_ARCH_ESP8266
-  String id(ESP.getChipId(), HEX);
-#endif
-#ifdef ARDUINO_ARCH_ESP32
   String id((uint32_t)ESP.getEfuseMac(), HEX); // Low 4 bytes of MAC address (6 bytes)
-#endif
   id.toUpperCase();
   return id;
 }
@@ -331,20 +375,35 @@ String getChipId() {
 String host(getChipId());
 String wifiSoftAP("Pedalino-" + getChipId());
 
-#include <soc/rtc.h>
 
-uint32_t getCpuFreqMhz() {
-#ifdef ARDUINO_ARCH_ESP32
-  //return (rtc_clk_cpu_freq_get() * 80);
-  rtc_cpu_freq_config_t config;
-  rtc_clk_cpu_freq_get_config(&config);
-  return config.freq_mhz;
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+extern String           theme;
+extern bool             appleMidiConnected;
+#ifdef WEBSOCKET
+extern AsyncWebSocket   webSocket;
+extern AsyncEventSource events;
 #endif
 
-#ifdef ARDUINO_ARCH_ESP8266
-  return ESP.getCpuFreqMHz();
+void   wifi_connect();
+void   blynk_enable();
+void   blynk_disable();
+bool   blynk_enabled();
+bool   blynk_cloud_connected();
+String blynk_get_token();
+String blynk_set_token(String);
+void   blynk_connect();
+void   blynk_disconnect();
+void   blynk_refresh();
+
+void   screen_update(bool);
+void   eeprom_update_current_profile(byte);
+bool   auto_reconnect(String ssid = "", String password = "");
+bool   smart_config();
+bool   ap_connect(String ssid = "", String password = "");
+#ifdef WIFI
+String translateEncryptionType(wifi_auth_mode_t);
 #endif
 
-  return 0;
-}
 #endif // _PEDALINO_H

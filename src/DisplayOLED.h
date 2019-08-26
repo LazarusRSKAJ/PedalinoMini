@@ -1,11 +1,12 @@
-/*  __________           .___      .__  .__                   ___ ________________    ___
- *  \______   \ ____   __| _/____  |  | |__| ____   ____     /  / \__    ___/     \   \  \   
- *   |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \   /  /    |    | /  \ /  \   \  \  
- *   |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> ) (  (     |    |/    Y    \   )  )
- *   |____|    \___  >____ |(____  /____/__|___|  /\____/   \  \    |____|\____|__  /  /  /
- *                 \/     \/     \/             \/           \__\                 \/  /__/
- *                                                                (c) 2018 alf45star
- *                                                        https://github.com/alf45tar/Pedalino
+/*
+__________           .___      .__  .__                 _____  .__       .__     ___ ________________    ___    
+\______   \ ____   __| _/____  |  | |__| ____   ____   /     \ |__| ____ |__|   /  / \__    ___/     \   \  \   
+ |     ___// __ \ / __ |\__  \ |  | |  |/    \ /  _ \ /  \ /  \|  |/    \|  |  /  /    |    | /  \ /  \   \  \  
+ |    |   \  ___// /_/ | / __ \|  |_|  |   |  (  <_> )    Y    \  |   |  \  | (  (     |    |/    Y    \   )  ) 
+ |____|    \___  >____ |(____  /____/__|___|  /\____/\____|__  /__|___|  /__|  \  \    |____|\____|__  /  /  /  
+               \/     \/     \/             \/               \/        \/       \__\                 \/  /__/   
+                                                                                   (c) 2018-2019 alf45star
+                                                                       https://github.com/alf45tar/PedalinoMini
  */
 
 #ifdef TTGO_T_EIGHT
@@ -20,18 +21,9 @@
 #define OLED_I2C_SCL      SCL
 #endif
 #include <OLEDDisplayUi.h>
-
 #include <Battery.h>
-
-#ifdef ARDUINO_ARCH_ESP8266
-#include <ESP8266WiFi.h>
-#endif
-
-#ifdef ARDUINO_ARCH_ESP32
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#endif
+
 
 // Initialize the OLED display using Wire library
 #ifdef TTGO_T_EIGHT
@@ -42,12 +34,8 @@ SSD1306Wire   display(OLED_I2C_ADDRESS, OLED_I2C_SDA, OLED_I2C_SCL);
 OLEDDisplayUi ui(&display);
 bool          uiUpdate = true;
 
-Battery bat(3000, 4200, GPIO_NUM_34);
+Battery bat(3000, 4200, BATTERY_PIN);
 
-bool blynk_cloud_connected();
-extern bool             appleMidiConnected;
-extern AsyncWebSocket   webSocket;
-extern AsyncEventSource events;
 
 #define WIFI_LOGO_WIDTH   78
 #define WIFI_LOGO_HEIGHT  64
@@ -402,33 +390,63 @@ void topOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
   static uint16_t voltage = bat.voltage();
   static uint8_t  level   = bat.level(voltage);
 
+  if ((millis() >= endMillis2) ||
+      (millis() < endMillis2 && MTC.getMode() == MidiTimeCode::SynchroNone)) {
 #ifdef WIFI
-  static int      signal  = WiFi.RSSI();
+    if (wifiEnabled) {
+      static int      signal  = WiFi.RSSI();
 
-  display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->setFont(wifiSignal);
-  signal = (4*signal + WiFi.RSSI()) / 5;
-  if      (signal < -90) display->drawString(0, 0, String(0));
-  else if (signal < -85) display->drawString(0, 0, String(1));
-  else if (signal < -80) display->drawString(0, 0, String(2));
-  else if (signal < -75) display->drawString(0, 0, String(3));
-  else if (signal < -70) display->drawString(0, 0, String(4));
-  else if (signal < -65) display->drawString(0, 0, String(5));
-  else if (signal < -60) display->drawString(0, 0, String(6));
-  else                   display->drawString(0, 0, String(7));
+      display->setTextAlignment(TEXT_ALIGN_LEFT);
+      display->setFont(wifiSignal);
+      signal = (4*signal + WiFi.RSSI()) / 5;
+      if      (signal < -90) display->drawString(0, 0, String(0));
+      else if (signal < -85) display->drawString(0, 0, String(1));
+      else if (signal < -80) display->drawString(0, 0, String(2));
+      else if (signal < -75) display->drawString(0, 0, String(3));
+      else if (signal < -70) display->drawString(0, 0, String(4));
+      else if (signal < -65) display->drawString(0, 0, String(5));
+      else if (signal < -60) display->drawString(0, 0, String(6));
+      else                   display->drawString(0, 0, String(7));
+    }
 #endif
 
-  display->setFont(bluetoothSign);
-  if (bleMidiConnected) display->drawString(24, 0, String(1));
-  else display->drawString(24, 0, String(0));
+    display->setFont(bluetoothSign);
+    if (bleMidiConnected) display->drawString(24, 0, String(1));
+    else display->drawString(24, 0, String(0));
 
-  display->setFont(blynkSign);
-  if (blynk_cloud_connected()) display->drawString(36, 0, String(1));
-  else display->drawString(36, 0, String(0));
+    display->setFont(blynkSign);
+    if (blynk_cloud_connected()) display->drawString(36, 0, String(1));
+    else display->drawString(36, 0, String(0));
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+    display->setFont(profileSign);
+    display->drawString(64 + 10*currentProfile, 0, String(currentProfile));
+
+#ifdef TTGO_T_EIGHT
+    display->setTextAlignment(TEXT_ALIGN_RIGHT);
+    display->setFont(batteryIndicator);
+    voltage = (199*voltage + bat.voltage()) / 200;
+    level   = (199*level + bat.level(voltage)) / 200;
+    /*
+    if      (level == 100) display->drawString(128, 0, String((millis() >> 10) % 4));
+    else if (level >   70) display->drawString(128, 0, String(3));
+    else if (level >   40) display->drawString(128, 0, String(2));
+    else if (level >   10) display->drawString(128, 0, String(1));
+    else if ((millis() >> 10) % 2) display->drawString(128, 0, String(0));
+    else display->drawString(128, 0, String(4));
+    */
+    if      (voltage > 3700) display->drawString(128, 0, String((millis() >> 10) % 4));
+    else if (voltage > 3600) display->drawString(128, 0, String(3));
+    else if (voltage > 3300) display->drawString(128, 0, String(2));
+    else if (voltage > 3100) display->drawString(128, 0, String(1));
+    else if ((millis() >> 10) % 2) display->drawString(128, 0, String(0));
+    else display->drawString(128, 0, String(4));
+#endif
+  }
 
   if (millis() < endMillis2) {
     if (MTC.getMode() == MidiTimeCode::SynchroClockMaster ||
         MTC.getMode() == MidiTimeCode::SynchroClockSlave) {
+      /*
       display->setFont(ArialMT_Plain_10);
       display->setTextAlignment(TEXT_ALIGN_CENTER);
       display->drawString(64, 0, String(bpm) + "BPM");
@@ -481,6 +499,25 @@ void topOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
             display->drawString(128, 0, String(1));
           break;
       }
+      */
+      MTC.isPlaying() ? display->setColor(WHITE) : display->setColor(BLACK);
+      switch (timeSignature) {
+        case PED_TIMESIGNATURE_2_4:
+          display->fillRect(64 * MTC.getBeat(), 0, 64, 10);
+          break;
+        case PED_TIMESIGNATURE_4_4:
+          display->fillRect(32 * MTC.getBeat(), 0, 32, 10);
+          //display->setColor(INVERSE);
+          display->drawRect(32 * MTC.getBeat(), 0, 32, 10);
+          break;
+        case PED_TIMESIGNATURE_3_4:
+        case PED_TIMESIGNATURE_3_8:
+        case PED_TIMESIGNATURE_6_8:
+        case PED_TIMESIGNATURE_9_8:
+        case PED_TIMESIGNATURE_12_8:
+          display->fillRect(43 * MTC.getBeat(), 0, 42, 10);
+          break;
+      }
     }
     else if (MTC.getMode() == MidiTimeCode::SynchroMTCMaster ||
              MTC.getMode() == MidiTimeCode::SynchroMTCSlave) {
@@ -489,39 +526,8 @@ void topOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
       display->setFont(ArialMT_Plain_10);
       display->setTextAlignment(TEXT_ALIGN_RIGHT);
       display->drawString(128, 0, buf);
-    }    
+    }
   }
-  else {
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->setFont(profileSign);
-    display->drawString(64 + 10*currentProfile, 0, String(currentProfile));
-
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->setFont(batteryIndicator);
-    voltage = (199*voltage + bat.voltage()) / 200;
-    level   = (199*level + bat.level(voltage)) / 200;
-    /*
-    if      (level == 100) display->drawString(128, 0, String((millis() >> 10) % 4));
-    else if (level >   70) display->drawString(128, 0, String(3));
-    else if (level >   40) display->drawString(128, 0, String(2));
-    else if (level >   10) display->drawString(128, 0, String(1));
-    else if ((millis() >> 10) % 2) display->drawString(128, 0, String(0));
-    else display->drawString(128, 0, String(4));
-    */
-    if      (voltage > 3700) display->drawString(128, 0, String((millis() >> 10) % 4));
-    else if (voltage > 3600) display->drawString(128, 0, String(3));
-    else if (voltage > 3300) display->drawString(128, 0, String(2));
-    else if (voltage > 3100) display->drawString(128, 0, String(1));
-    else if ((millis() >> 10) % 2) display->drawString(128, 0, String(0));
-    else display->drawString(128, 0, String(4));
-    
-    /*
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->setFont(ArialMT_Plain_10);
-    display->drawString(90, 0, String(voltage/10));
-    display->drawString(106, 0, String(level));
-    */
-  }  
 }
 
 void bottomOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
@@ -538,27 +544,23 @@ void bottomOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
     display->drawString(0, 54, String("Bank " + String(currentBank+1)));
 
 #ifdef WIFI
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
-    display->setFont(midiIcons);
-    if(appleMidiConnected) display->drawString(84, 54, String(1));
-    else display->drawString(84, 54, String(0));
+    if (wifiEnabled) {
+      display->setTextAlignment(TEXT_ALIGN_RIGHT);
+      display->setFont(midiIcons);
+      if(appleMidiConnected) display->drawString(84, 54, String(1));
+      else display->drawString(84, 54, String(0));
 
-    if (interfaces[PED_IPMIDI].midiIn) display->drawString(106, 54, String(2));
-    else display->drawString(106, 54, String(0));
+      if (interfaces[PED_IPMIDI].midiIn) display->drawString(106, 54, String(2));
+      else display->drawString(106, 54, String(0));
 
-    if (interfaces[PED_OSC].midiIn) display->drawString(128, 54, String(3));
-    else display->drawString(128, 54, String(0));
+      if (interfaces[PED_OSC].midiIn) display->drawString(128, 54, String(3));
+      else display->drawString(128, 54, String(0));
+    }
 #endif
-
-    /*
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->setFont(ArialMT_Plain_10);
-    display->drawString(50, 54, String(ESP.getFreeHeap() / 1024));
-    */
   }
 }
 
-void drawRect (OLEDDisplay *display, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
+void drawRect(OLEDDisplay *display, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
   display->drawLine(x0+1, y0,   x1-1, y0);
   display->drawLine(x1,   y0+1, x1,   y1-1);
@@ -734,8 +736,9 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
     ui.enableAutoTransition();
   }
   
+#ifdef WEBSOCKET
   events.send(MTC.isPlaying() ? "1" : "0", "play");
-  
+
   if (MTC.getMode() == MidiTimeCode::SynchroClockMaster ||
       MTC.getMode() == MidiTimeCode::SynchroClockSlave)  {
     char buf[4];
@@ -778,6 +781,7 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
     events.send("", "beat");
     events.send("", "timesignature");
   }
+#endif
 }
 
 void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
@@ -813,21 +817,48 @@ void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
       display->setTextAlignment(TEXT_ALIGN_RIGHT);
       display->drawString(128 + x, 36 + y, WiFi.localIP().toString());
       break;
+    case WIFI_MODE_MAX:
+    case WIFI_MODE_NULL:
+      break;
   }
 #endif
 }
 
 void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
-  display->setTextAlignment(TEXT_ALIGN_CENTER);
-  display->setFont(ArialMT_Plain_16);
-  display->drawString(64 + x, 16 + y, host);
-  display->drawString(64 + x, 36 + y, WiFi.localIP().toString());
+  static uint16_t voltage = bat.voltage();
+
+  if (MTC.isPlaying() || MTC.getMode() != PED_MTC_NONE || millis() < endMillis2)
+    ui.switchToFrame(0);
+
+  voltage = (99*voltage + bat.voltage()) / 100;
+
+  display->setFont(ArialMT_Plain_10);
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->drawString(0 + x, 16 + y, "Free heap:");
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  display->drawString(128 + x, 16 + y, ESP.getFreeHeap()/1024 + String(" Kb"));
+
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->drawString(0 + x, 26 + y, "Battery voltage:");
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  display->drawString(128 + x, 26 + y, voltage + String(" mV"));
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->drawString(0 + x, 36 + y, "Running time:");
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  long sec = (millis() / 1000) % 60;
+  long min = (millis() / 1000 / 60) % 60;
+  long h   = (millis() / 1000 / 3600);
+  display->drawString(128 + x, 36 + y, h + String("h ") + min + String("m ") + sec + String("s"));
 }
 
 // This array keeps function pointers to all frames
 // frames are the single views that slide in
+#ifdef DIAGNOSTIC
+FrameCallback frames[] = { drawFrame1, drawFrame2, drawFrame3 };
+#else
 FrameCallback frames[] = { drawFrame1, drawFrame2 };
+#endif
 int frameCount = sizeof(frames) / sizeof(FrameCallback);
 
 // Overlays are statically drawn on top of a frame
@@ -841,20 +872,24 @@ void display_init()
   display.setContrast(255);
 
 #ifdef WIFI
-  display.clear();
-  display.drawXbm((display.getWidth() - WIFI_LOGO_WIDTH) / 2, (display.getHeight() - WIFI_LOGO_HEIGHT) / 2, WIFI_LOGO_WIDTH, WIFI_LOGO_HEIGHT, WiFiLogo);
-  display.display();
-  delay(500);
+  if (wifiEnabled) {
+    display.clear();
+    display.drawXbm((display.getWidth() - WIFI_LOGO_WIDTH) / 2, (display.getHeight() - WIFI_LOGO_HEIGHT) / 2, WIFI_LOGO_WIDTH, WIFI_LOGO_HEIGHT, WiFiLogo);
+    display.display();
+    delay(500);
+  }
 #endif
 
 #ifdef BLE
-  display.clear();
-  display.drawXbm((display.getWidth() - BLUETOOTH_LOGO_WIDTH) / 2, (display.getHeight() - BLUETOOTH_LOGO_HEIGHT) / 2, BLUETOOTH_LOGO_WIDTH, BLUETOOTH_LOGO_HEIGHT, BluetoothLogo);
-  display.display();
-  delay(500);
+  if (bleEnabled) {
+    display.clear();
+    display.drawXbm((display.getWidth() - BLUETOOTH_LOGO_WIDTH) / 2, (display.getHeight() - BLUETOOTH_LOGO_HEIGHT) / 2, BLUETOOTH_LOGO_WIDTH, BLUETOOTH_LOGO_HEIGHT, BluetoothLogo);
+    display.display();
+    delay(500);
+  }
 #endif
 
- // The ESP is capable of rendering 60fps in 80Mhz mode
+  // The ESP is capable of rendering 60fps in 80Mhz mode
 	// but that won't give you much time for anything else
 	// run it in 160Mhz mode or just set it to 30 fps
   ui.setTargetFPS(60);
