@@ -26,7 +26,7 @@ void load_factory_default()
 
   for (byte p = 0; p < PEDALS-2; p++)
     pedals[p] = {PED_MIDI,       // function
-                 PED_ENABLE,     // autosensing
+                 PED_DISABLE,    // autosensing
                  PED_MOMENTARY1, // mode
                  PED_PRESS_1,    // press mode
                  PED_DISABLE,    // invert polarity
@@ -41,7 +41,7 @@ void load_factory_default()
                 };
 
   pedals[PEDALS-2] = {PED_MIDI,       // function
-                      PED_ENABLE,     // autosensing
+                      PED_DISABLE,    // autosensing
                       PED_ANALOG,     // mode
                       PED_NONE,       // press mode
                       PED_ENABLE,     // invert polarity
@@ -56,7 +56,7 @@ void load_factory_default()
                       };
 
   pedals[PEDALS-1] = {PED_MIDI,       // function
-                      PED_ENABLE,     // autosensing
+                      PED_DISABLE,    // autosensing
                       PED_ANALOG,     // mode
                       PED_NONE,       // press mode
                       PED_ENABLE,     // invert polarity
@@ -113,8 +113,8 @@ void load_factory_default()
     banks[b][4].midiChannel  = (b + 2) / 2;
     banks[b][4].midiCode     = 12;  // Effect Controller 1
     banks[b][4].midiValue1   = 0;
-    banks[b][4].midiValue2   = 0;
-    banks[b][4].midiValue3   = 0;
+    banks[b][4].midiValue2   = 63;
+    banks[b][4].midiValue3   = 127;
 
     banks[b][5].pedalName[0] = 'F';
     banks[b][5].pedalName[1] = 0;
@@ -122,8 +122,8 @@ void load_factory_default()
     banks[b][5].midiChannel  = (b + 2) / 2;
     banks[b][5].midiCode     = 13;  // Effect Controller 2
     banks[b][5].midiValue1   = 0;
-    banks[b][5].midiValue2   = 0;
-    banks[b][5].midiValue3   = 0;
+    banks[b][5].midiValue2   = 63;
+    banks[b][5].midiValue3   = 127;
 
     banks[b+1][0].pedalName[0] = 'A';
     banks[b+1][0].pedalName[1] = 0;
@@ -167,8 +167,8 @@ void load_factory_default()
     banks[b+1][4].midiChannel  = (b + 2) / 2;
     banks[b+1][4].midiCode     = 12;  // Effect Controller 1
     banks[b+1][4].midiValue1   = 0;
-    banks[b+1][4].midiValue2   = 0;
-    banks[b+1][4].midiValue3   = 0;
+    banks[b+1][4].midiValue2   = 63;
+    banks[b+1][4].midiValue3   = 127;
 
     banks[b+1][5].pedalName[0] = 'F';
     banks[b+1][5].pedalName[1] = 0;
@@ -176,8 +176,8 @@ void load_factory_default()
     banks[b+1][5].midiChannel  = (b + 2) / 2;
     banks[b+1][5].midiCode     = 13;  // Effect Controller 2
     banks[b+1][5].midiValue1   = 0;
-    banks[b+1][5].midiValue2   = 0;
-    banks[b+1][5].midiValue3   = 0;
+    banks[b+1][5].midiValue2   = 63;
+    banks[b+1][5].midiValue3   = 127;
   }
 
   for (byte i = 0; i < INTERFACES; i++) 
@@ -233,7 +233,17 @@ void eeprom_update_current_profile(byte profile = currentProfile)
   DPRINT("[NVS][Global][Current Profile]: %d\n", profile);
 }
 
-void eeprom_update_repeat_on_bank_switch_enable(bool enable = true)
+void eeprom_update_tap_dance(bool enable = true)
+{
+  DPRINT("Updating NVS ... ");
+  preferences.begin("Global", false);
+  preferences.putBool("Tap Dance Mode", enable);
+  preferences.end();
+  DPRINT("done\n");
+  DPRINT("[NVS][Global[Tap Dance Mode]: %d\n", enable);
+}
+
+void eeprom_update_repeat_on_bank_switch(bool enable = true)
 {
   DPRINT("Updating NVS ... ");
   preferences.begin("Global", false);
@@ -241,6 +251,22 @@ void eeprom_update_repeat_on_bank_switch_enable(bool enable = true)
   preferences.end();
   DPRINT("done\n");
   DPRINT("[NVS][Global[Bank Switch]: %d\n", enable);
+}
+
+void eeprom_update_press_time(long p1, long p2, long p3, long p4)
+{
+  DPRINT("Updating NVS ... ");
+  preferences.begin("Global", false);
+  preferences.putLong("Single Time", p1);
+  preferences.putLong("Double Time", p2);
+  preferences.putLong("Long   Time", p3);
+  preferences.putLong("Repeat Time", p4);
+  preferences.end();
+  DPRINT("done\n");
+  DPRINT("[NVS][Global[Single Time]: %d\n", p1);
+  DPRINT("[NVS][Global[Double Time]: %d\n", p2);
+  DPRINT("[NVS][Global[Long   Time]: %d\n", p3);
+  DPRINT("[NVS][Global[Repeat Time]: %d\n", p4);
 }
 
 void eeprom_update_blynk_cloud_enable(bool enable = true)
@@ -310,12 +336,17 @@ void eeprom_read_global()
 {
   DPRINT("Reading NVS Global ... ");
   preferences.begin("Global", true);
-  host           = preferences.getString("Device Name");
-  wifiSSID       = preferences.getString("SSID");
-  wifiPassword   = preferences.getString("Password");
-  theme          = preferences.getString("Bootstrap Theme");
-  currentProfile = preferences.getUChar("Current Profile");
+  host               = preferences.getString("Device Name");
+  wifiSSID           = preferences.getString("SSID");
+  wifiPassword       = preferences.getString("Password");
+  theme              = preferences.getString("Bootstrap Theme");
+  currentProfile     = preferences.getUChar("Current Profile");
+  tapDanceMode       = preferences.getBool("Tap Dance Mode");
   repeatOnBankSwitch = preferences.getBool("Bank Switch");
+  pressTime          = preferences.getLong("Single Time");
+  doublePressTime    = preferences.getLong("Double Time");
+  longPressTime      = preferences.getLong("Long   Time");
+  repeatPressTime    = preferences.getLong("Repeat Time");
   preferences.getBool("Blynk Cloud") ? blynk_enable() : blynk_disable();
   blynk_set_token(preferences.getString("Blynk Token"));
   preferences.end();
@@ -369,6 +400,10 @@ void eeprom_read_profile(byte profile = currentProfile)
     pedals[i].footSwitch[0] = nullptr;
     pedals[i].footSwitch[1] = nullptr;
     pedals[i].analogPedal   = nullptr;
+    if (pedals[i].autoSensing) {
+      pedals[i].expZero       = ADC_RESOLUTION - 1;
+      pedals[i].expMax        = 0;
+    }
   };
   
   blynk_refresh();
@@ -393,15 +428,14 @@ void eeprom_initialize()
   eeprom_update_wifi_credentials();
   eeprom_update_theme();
   eeprom_update_current_profile(0);
-  eeprom_update_repeat_on_bank_switch_enable(false);
+  eeprom_update_tap_dance(false);
+  eeprom_update_repeat_on_bank_switch(false);
+  eeprom_update_press_time(pressTime, doublePressTime, longPressTime, repeatPressTime);
   eeprom_update_blynk_cloud_enable(false);
   eeprom_update_blynk_auth_token();
   load_factory_default();
-  for (byte p = 0; p < PROFILES; p++) {
-    currentBank = p;
+  for (byte p = 0; p < PROFILES; p++)
     eeprom_update_profile(p);
-  }
-  currentBank = 1;
 }
 
 void eeprom_init_or_erase()

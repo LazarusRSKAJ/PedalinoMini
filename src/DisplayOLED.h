@@ -9,6 +9,8 @@ __________           .___      .__  .__                 _____  .__       .__    
                                                                        https://github.com/alf45tar/PedalinoMini
  */
 
+#include "Fonts.h"
+
 #ifdef TTGO_T_EIGHT
 #include "SH1106Wire.h"
 #define OLED_I2C_ADDRESS  0x3c
@@ -417,9 +419,11 @@ void topOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
     display->setFont(blynkSign);
     if (blynk_cloud_connected()) display->drawString(36, 0, String(1));
     else display->drawString(36, 0, String(0));
-    display->setTextAlignment(TEXT_ALIGN_CENTER);
-    display->setFont(profileSign);
-    display->drawString(64 + 10*currentProfile, 0, String(currentProfile));
+    if (scrollingMode) {
+      display->setTextAlignment(TEXT_ALIGN_CENTER);
+      display->setFont(profileSign);
+      display->drawString(64 + 10*currentProfile, 0, String(currentProfile));
+    }
 
 #ifdef TTGO_T_EIGHT
     display->setTextAlignment(TEXT_ALIGN_RIGHT);
@@ -536,12 +540,26 @@ void bottomOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
     byte p = map(pedals[lastUsedPedal].pedalValue[0], 0, MIDI_RESOLUTION - 1, 0, 100);
     display->drawProgressBar(4, 54, 120, 8, p);
   }
-  else { 
+  else if (scrollingMode) { 
     display->drawLine(0, 51, 127, 51);
 
     display->setTextAlignment(TEXT_ALIGN_LEFT);
     display->setFont(ArialMT_Plain_10);
-    display->drawString(0, 54, String("Bank " + String(currentBank+1)));
+    if (tapDanceMode && tapDanceBank) {
+      display->setColor(BLACK);
+      display->fillRect(0, 54, 40, 63);
+      display->setColor(WHITE);
+    }
+    else {
+      display->fillRect(0, 54, 40, 63);
+      display->setColor(BLACK);
+    }
+    
+    if (currentBank < 9)
+      display->drawString(0, 53, String("Bank 0" + String(currentBank+1)));
+    else
+      display->drawString(0, 53, String("Bank " + String(currentBank+1)));
+    display->setColor(WHITE);
 
 #ifdef WIFI
     if (wifiEnabled) {
@@ -576,6 +594,13 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
     if (banks[currentBank][lastUsed].pedalName[0] == 0) {
       display->setTextAlignment(TEXT_ALIGN_CENTER);
       switch (m1) {
+        case midi::InvalidType:
+           drawRect(display, 64-22, 15, 64+24, 15+23);
+          display->setFont(ArialMT_Plain_10);
+          display->drawString( 64 + x, 39 + y, String("Bank"));
+          display->setFont(ArialMT_Plain_24);
+          display->drawString( 64 + x, 14 + y, String(m2));
+          break;
         case midi::NoteOn:
         case midi::NoteOff:
           drawRect(display, 64-22, 15, 64+24, 15+23);
@@ -614,17 +639,31 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
           display->drawString(84 + x, 14 + y, String(m2));  
           break;
       }
-      display->setFont(ArialMT_Plain_10);
-      display->drawString(18 + x, 39 + y, String("Channel"));
-      display->setFont(ArialMT_Plain_16);
-      display->drawString(18 + x, 22 + y, String(m4));
+      if (m1 != midi::InvalidType) {
+        display->setFont(ArialMT_Plain_10);
+        display->drawString(18 + x, 39 + y, String("Channel"));
+        display->setFont(ArialMT_Plain_16);
+        display->drawString(18 + x, 22 + y, String(m4));
+      }
     }
-    else {
-      display->setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-      display->setFont(ArialMT_Plain_24);
-      display->drawString(64, 32, String(banks[currentBank][lastUsed].pedalName)); 
-    }    
-  }  
+    else {  
+      switch (m1) {
+        case midi::InvalidType:
+          drawRect(display, 64-22, 15, 64+24, 15+23);
+          display->setTextAlignment(TEXT_ALIGN_CENTER);
+          display->setFont(ArialMT_Plain_10);
+          display->drawString( 64 + x, 39 + y, String("Bank"));
+          display->setFont(ArialMT_Plain_24);
+          display->drawString( 64 + x, 14 + y, String(m2));
+          break;
+        default:
+          display->setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+          display->setFont(ArialMT_Plain_24);
+          display->drawString(64, 32, String(banks[currentBank][lastUsed].pedalName)); 
+          break;
+      }    
+    }
+  }
   else if (MTC.getMode() == MidiTimeCode::SynchroClockMaster ||
            MTC.getMode() == MidiTimeCode::SynchroClockSlave) {
     display->setFont(ArialMT_Plain_24);
@@ -727,13 +766,24 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
     ui.disableAutoTransition();
   }
   else {
-    display->setFont(ArialMT_Plain_16);
-    display->setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display->drawString(64 + x, 32 + y, MODEL);
-    display->setFont(ArialMT_Plain_10);
-    display->setTextAlignment(TEXT_ALIGN_LEFT);
-    display->drawString(110 + x, 16 + y, String("TM"));
-    ui.enableAutoTransition();
+    if (scrollingMode) {
+      display->setFont(ArialMT_Plain_16);
+      display->setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+      display->drawString(64 + x, 32 + y, MODEL);
+      display->setFont(ArialMT_Plain_10);
+      display->setTextAlignment(TEXT_ALIGN_LEFT);
+      display->drawString(110 + x, 16 + y, String("TM"));
+      ui.enableAutoTransition();
+    }
+    else {
+      display->setTextAlignment(TEXT_ALIGN_LEFT);
+      display->setFont(DSEG7_Classic_Bold_50);
+      display->drawString(  0 + x, 9 + y, (currentProfile == 0 ? String('A') : (currentProfile == 1 ? String('B') : String('C'))));
+      display->setTextAlignment(TEXT_ALIGN_RIGHT);
+      display->setFont(DSEG7_Classic_Bold_50);
+      display->drawString(128 + x, 9 + y, (currentBank >= 9  ? String("") : String('0')) + String(currentBank + 1));
+      ui.disableAutoTransition();
+    }
   }
   
 #ifdef WEBSOCKET
@@ -786,7 +836,7 @@ void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
 
 void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
 {
-  if (MTC.isPlaying() || MTC.getMode() != PED_MTC_NONE || millis() < endMillis2)
+  if (!scrollingMode || MTC.isPlaying() || MTC.getMode() != PED_MTC_NONE || millis() < endMillis2)
     ui.switchToFrame(0);
 
   display->setFont(ArialMT_Plain_10);
@@ -828,7 +878,7 @@ void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int1
 {
   static uint16_t voltage = bat.voltage();
 
-  if (MTC.isPlaying() || MTC.getMode() != PED_MTC_NONE || millis() < endMillis2)
+  if (!scrollingMode || MTC.isPlaying() || MTC.getMode() != PED_MTC_NONE || millis() < endMillis2)
     ui.switchToFrame(0);
 
   voltage = (99*voltage + bat.voltage()) / 100;

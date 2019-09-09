@@ -32,14 +32,16 @@ const byte pinA[] = {GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_34, GPIO_NUM_35, GPIO_NU
 
 #ifdef TTGO_T_EIGHT
 #define FACTORY_DEFAULT_PIN   GPIO_NUM_38   // Right 37   Center 38   Left 39
-#else
-#define FACTORY_DEFAULT_PIN   GPIO_NUM_0
-#endif
-#define BATTERY_PIN           GPIO_NUM_34
-
 #define RIGHT_PIN             GPIO_NUM_37
 #define CENTER_PIN            GPIO_NUM_38
 #define LEFT_PIN              GPIO_NUM_39
+#else
+#define FACTORY_DEFAULT_PIN   GPIO_NUM_0
+#define RIGHT_PIN             GPIO_NUM_37
+#define CENTER_PIN            GPIO_NUM_0
+#define LEFT_PIN              GPIO_NUM_38
+#endif
+#define BATTERY_PIN           GPIO_NUM_34
 
 #define PIN_D(x)          pinD[x]
 #define PIN_A(x)          pinA[x]
@@ -67,12 +69,16 @@ typedef uint8_t   byte;
 #define PED_PROGRAM_CHANGE      1
 #define PED_CONTROL_CHANGE      2
 #define PED_NOTE_ON_OFF         3
-#define PED_PITCH_BEND          4
-#define PED_BANK_SELECT_INC     5
-#define PED_BANK_SELECT_DEC     6
-#define PED_PROGRAM_CHANGE_INC  7
-#define PED_PROGRAM_CHANGE_DEC  8
-#define PED_SEQUENCE            9
+#define PED_BANK_SELECT_INC     4
+#define PED_BANK_SELECT_DEC     5
+#define PED_PROGRAM_CHANGE_INC  6
+#define PED_PROGRAM_CHANGE_DEC  7
+#define PED_PITCH_BEND          8
+#define PED_CHANNEL_PRESSURE    9
+#define PED_MIDI_START          10
+#define PED_MIDI_STOP           11
+#define PED_MIDI_CONTINUE       12
+#define PED_SEQUENCE            20
 
 #define PED_NONE                0
 #define PED_MOMENTARY1          1
@@ -267,12 +273,15 @@ interface interfaces[] = {
                            "OSC        ", 1, 1, 0, 1, 0
                           };                       // Interfaces Setup
 
-bool      repeatOnBankSwitch = false;
+bool  tapDanceMode            = false;
+bool  repeatOnBankSwitch      = false;
+bool  tapDanceBank            = true;
 
-byte bootMode                 = PED_BOOT_NORMAL;
+byte  bootMode                = PED_BOOT_NORMAL;
 volatile byte currentProfile  = 0;
 volatile bool reloadProfile   = true;
 volatile bool saveProfile     = false;
+volatile bool scrollingMode   = false;  // Display scrolling mode
 byte  currentBank             = 0;
 byte  currentPedal            = 0;
 byte  currentInterface        = PED_USBMIDI;
@@ -282,6 +291,10 @@ byte  lastUsed                = 0xFF;   // Pedal or switch
 bool  selectBank              = true;
 byte  currentMidiTimeCode     = PED_MTC_NONE;
 byte  timeSignature           = PED_TIMESIGNATURE_4_4;
+long  pressTime               = 100;
+long  doublePressTime         = 300;
+long  longPressTime           = 500;
+long  repeatPressTime         = 500;
 
 MidiTimeCode  MTC;
 unsigned int  bpm             = 120;

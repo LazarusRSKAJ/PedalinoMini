@@ -152,6 +152,7 @@ void get_footer_page() {
   //page += F("<a class='navbar-text' href='https://github.com/alf45tar/PedalinoMini'>https://github.com/alf45tar/PedalinoMini</a>");
   //page += F("</nav>");
 
+  page += F("<p></p>");
   page += F("</div>");
 #ifdef BOOTSTRAP_LOCAL
   page += F("<script src='/js/jquery-3.3.1.slim.min.js' integrity='sha256-o3xvfVoAnalAlD3CPebt5QWZ3yLdooNGruu0ZJvZy0U=' crossorigin='anonymous'></script>");
@@ -221,6 +222,9 @@ void get_root_page() {
   page += F("</dd>");
   page += F("<dt>Pedals</dt><dd>");
   page += String(PEDALS);
+  page += F("</dd>");
+  page += F("<dt>Sequences</dt><dd>");
+  page += String(SEQUENCES);
   page += F("</dd>");
   page += F("</div>");
 
@@ -694,10 +698,6 @@ void get_banks_page() {
     if (banks[b-1][i-1].midiMessage == PED_NOTE_ON_OFF) page += F(" selected");
     page += F(">Note On/Off</option>");
     page += F("<option value='");
-    page += String(PED_PITCH_BEND) + F("'");
-    if (banks[b-1][i-1].midiMessage == PED_PITCH_BEND) page += F(" selected");
-    page += F(">Pitch Bend</option>");
-    page += F("<option value='");
     page += String(PED_BANK_SELECT_INC) + F("'");
     if (banks[b-1][i-1].midiMessage == PED_BANK_SELECT_INC) page += F(" selected");
     page += F(">Bank Select+</option>");
@@ -713,6 +713,26 @@ void get_banks_page() {
     page += String(PED_PROGRAM_CHANGE_DEC) + F("'");
     if (banks[b-1][i-1].midiMessage == PED_PROGRAM_CHANGE_DEC) page += F(" selected");
     page += F(">Program Change-</option>");
+    page += F("<option value='");
+    page += String(PED_PITCH_BEND) + F("'");
+    if (banks[b-1][i-1].midiMessage == PED_PITCH_BEND) page += F(" selected");
+    page += F(">Pitch Bend</option>");
+    page += F("<option value='");
+    page += String(PED_CHANNEL_PRESSURE) + F("'");
+    if (banks[b-1][i-1].midiMessage == PED_CHANNEL_PRESSURE) page += F(" selected");
+    page += F(">Channel Pressure</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_START) + F("'");
+    if (banks[b-1][i-1].midiMessage == PED_MIDI_START) page += F(" selected");
+    page += F(">Start</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_STOP) + F("'");
+    if (banks[b-1][i-1].midiMessage == PED_MIDI_STOP) page += F(" selected");
+    page += F(">Stop</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_CONTINUE) + F("'");
+    if (banks[b-1][i-1].midiMessage == PED_MIDI_CONTINUE) page += F(" selected");
+    page += F(">Continue</option>");
     page += F("<option value='");
     page += String(PED_SEQUENCE) + F("'");
     if (banks[b-1][i-1].midiMessage == PED_SEQUENCE) page += F(" selected");
@@ -810,11 +830,11 @@ void get_pedals_page() {
   page += F("<div class='col-1'>");
   page += F("<span class='badge badge-primary'>Analog<br>Map</span>");
   page += F("</div>");
-  page += F("<div class='col-1 text-center'>");
-  page += F("<span class='badge badge-primary'>Analog<br>Zero</span>");
+  page += F("<div class='col-1'>");
+  page += F("<span class='badge badge-primary'>Min</span>");
   page += F("</div>");
-  page += F("<div class='col-1 text-center'>");
-  page += F("<span class='badge badge-primary'>Analog<br>Max</span>");
+  page += F("<div class='col-1'>");
+  page += F("<span class='badge badge-primary'>Max</span>");
   page += F("</div>");
   page += F("</div>");
 
@@ -822,7 +842,7 @@ void get_pedals_page() {
 
   page += F("<div class='form-row'>");
   for (unsigned int i = 1; i <= PEDALS; i++) {
-    page += F("<div class='col-1 text-center'>");
+    page += F("<div class='col-1 mb-3 text-center'>");
     page += String(i);
     page += F("</div>");
 
@@ -1016,6 +1036,23 @@ void get_pedals_page() {
     page += F("</div>");
 
     page += F("<div class='col-1'>");
+    page += F("<input type='number' class='form-control form-control-sm' name='min");
+    page += String(i);
+    page += F("' min='0' max='");
+    page += String(ADC_RESOLUTION - 1) + F("' value='");
+    page += String(pedals[i-1].expZero);
+    page += F("'></div>");
+
+    page += F("<div class='col-1'>");
+    page += F("<input type='number' class='form-control form-control-sm' name='max");
+    page += String(i);
+    page += F("' min='0' max='");
+    page += String(ADC_RESOLUTION - 1) + F("' value='");
+    page += String(pedals[i-1].expMax);
+    page += F("'></div>");
+
+/*
+    page += F("<div class='col-1'>");
     page += F("<div class='form-group'>");
     page += F("<label for='minControlRange");
     page += String(i) + F("'></label>");
@@ -1040,7 +1077,7 @@ void get_pedals_page() {
     page += String(ADC_RESOLUTION) + F("'>");
     page += F("</div>");
     page += F("</div>");
-
+*/
     page += F("<div class='w-100'></div>");
   }
   page += F("</div>");
@@ -1226,10 +1263,6 @@ void get_sequences_page() {
     if (sequences[s-1][i-1].midiMessage == PED_NOTE_ON_OFF) page += F(" selected");
     page += F(">Note On/Off</option>");
     page += F("<option value='");
-    page += String(PED_PITCH_BEND) + F("'");
-    if (sequences[s-1][i-1].midiMessage == PED_PITCH_BEND) page += F(" selected");
-    page += F(">Pitch Bend</option>");
-    page += F("<option value='");
     page += String(PED_BANK_SELECT_INC) + F("'");
     if (sequences[s-1][i-1].midiMessage == PED_BANK_SELECT_INC) page += F(" selected");
     page += F(">Bank Select+</option>");
@@ -1245,6 +1278,26 @@ void get_sequences_page() {
     page += String(PED_PROGRAM_CHANGE_DEC) + F("'");
     if (sequences[s-1][i-1].midiMessage == PED_PROGRAM_CHANGE_DEC) page += F(" selected");
     page += F(">Program Change-</option>");
+    page += F("<option value='");
+    page += String(PED_PITCH_BEND) + F("'");
+    if (sequences[s-1][i-1].midiMessage == PED_PITCH_BEND) page += F(" selected");
+    page += F(">Pitch Bend</option>");
+    page += F("<option value='");
+    page += String(PED_CHANNEL_PRESSURE) + F("'");
+    if (sequences[s-1][i-1].midiMessage == PED_CHANNEL_PRESSURE) page += F(" selected");
+    page += F(">Channel Pressure</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_START) + F("'");
+    if (sequences[s-1][i-1].midiMessage == PED_MIDI_START) page += F(" selected");
+    page += F(">Start</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_STOP) + F("'");
+    if (sequences[s-1][i-1].midiMessage == PED_MIDI_STOP) page += F(" selected");
+    page += F(">Stop</option>");
+    page += F("<option value='");
+    page += String(PED_MIDI_CONTINUE) + F("'");
+    if (sequences[s-1][i-1].midiMessage == PED_MIDI_CONTINUE) page += F(" selected");
+    page += F(">Continue</option>");
     page += F("<option value='");
     page += String(PED_SEQUENCE) + F("'");
     if (sequences[s-1][i-1].midiMessage == PED_SEQUENCE) page += F(" selected");
@@ -1383,6 +1436,28 @@ void get_options_page() {
   page += F("<p></p>");
 
   page += F("<div class='form-row'>");
+  page += F("<label for='tapDanceMode' class='col-2 col-form-label'>Tap Dance Mode</label>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='custom-control custom-switch'>");
+  page += F("<input type='checkbox' class='custom-control-input' id='tapDanceMode' name='tapdancemode'");
+  if (tapDanceMode) page += F(" checked");
+  page += F(">");
+  page += F("<label class='custom-control-label' for='tapDanceMode'>One press for bank followed by one press for MIDI event</label>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("<div class='w-100'></div>");
+  page += F("<div class='col-2'>");
+  page += F("</div>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='shadow p-3 bg-white rounded'>");
+  page += F("<p>The first press of pedal X switch to bank X, the second press of any pedal send the MIDI event.</p>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("</div>");
+
+  page += F("<p></p>");
+
+  page += F("<div class='form-row'>");
   page += F("<label for='sendOnBankSwitch' class='col-2 col-form-label'>Bank Switch</label>");
   page += F("<div class='col-10'>");
   page += F("<div class='custom-control custom-switch'>");
@@ -1398,6 +1473,79 @@ void get_options_page() {
   page += F("<div class='col-10'>");
   page += F("<div class='shadow p-3 bg-white rounded'>");
   page += F("<p>On bank switch repeat the last MIDI message that was sent for that bank.</p>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("</div>");
+
+  page += F("<p></p>");
+
+  page += F("<div class='form-row'>");
+  page += F("<label for='pressTime' class='col-2 col-form-label'>Press Time</label>");
+  page += F("<div class='col-10'>");
+  page += F("<input class='form-control' type='text' maxlength='32' id='pressTime' name='presstime' placeholder='' value='");
+  page += String(pressTime) + F("'>");
+  page += F("</div>");
+  page += F("<div class='w-100'></div>");
+  page += F("<div class='col-2'>");
+  page += F("</div>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='shadow p-3 bg-white rounded'>");
+  page += F("<p>Switch press time in milliseconds.</p>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("</div>");
+
+  page += F("<p></p>");
+
+  page += F("<div class='form-row'>");
+  page += F("<label for='pressTime' class='col-2 col-form-label'>Double Press Time</label>");
+  page += F("<div class='col-10'>");
+  page += F("<input class='form-control' type='text' maxlength='32' id='doublePressTime' name='doublepresstime' placeholder='' value='");
+  page += String(doublePressTime) + F("'>");
+  page += F("</div>");
+  page += F("<div class='w-100'></div>");
+  page += F("<div class='col-2'>");
+  page += F("</div>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='shadow p-3 bg-white rounded'>");
+  page += F("<p>Set double press detection time between each press time in milliseconds.</p>");
+  page += F("<p>A double press is detected if the switch is released and depressed within this time, measured from when the first press is detected.</p>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("</div>");
+
+  page += F("<p></p>");
+
+  page += F("<div class='form-row'>");
+  page += F("<label for='pressTime' class='col-2 col-form-label'>Long Press Time</label>");
+  page += F("<div class='col-10'>");
+  page += F("<input class='form-control' type='text' maxlength='32' id='longPressTime' name='longpresstime' placeholder='' value='");
+  page += String(longPressTime) + F("'>");
+  page += F("</div>");
+  page += F("<div class='w-100'></div>");
+  page += F("<div class='col-2'>");
+  page += F("</div>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='shadow p-3 bg-white rounded'>");
+  page += F("Set the long press time in milliseconds after which a continuous press and release is deemed a long press, measured from when the first press is detected.</p>");
+  page += F("</div>");
+  page += F("</div>");
+  page += F("</div>");
+
+  page += F("<p></p>");
+
+  page += F("<div class='form-row'>");
+  page += F("<label for='pressTime' class='col-2 col-form-label'>Repeat Press Time</label>");
+  page += F("<div class='col-10'>");
+  page += F("<input class='form-control' type='text' maxlength='32' id='repeatPressTime' name='repeatpresstime' placeholder='' value='");
+  page += String(repeatPressTime) + F("'>");
+  page += F("</div>");
+  page += F("<div class='w-100'></div>");
+  page += F("<div class='col-2'>");
+  page += F("</div>");
+  page += F("<div class='col-10'>");
+  page += F("<div class='shadow p-3 bg-white rounded'>");
+  page += F("<p>Set the repeat time in milliseconds after which a continuous press and hold is treated as a stream of repeated presses, measured from when the first press is detected.</p>");
   page += F("</div>");
   page += F("</div>");
   page += F("</div>");
@@ -1599,8 +1747,6 @@ void http_handle_globals(AsyncWebServerRequest *request) {
 
 void http_handle_root(AsyncWebServerRequest *request) {
   http_handle_globals(request);
-  //get_root_page();
-  //request->send(200, "text/html", page);
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_root_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1608,8 +1754,6 @@ void http_handle_root(AsyncWebServerRequest *request) {
 
 void http_handle_live(AsyncWebServerRequest *request) {
   http_handle_globals(request);
-  //get_live_page();
-  //request->send(200, "text/html", page);
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_live_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1618,7 +1762,6 @@ void http_handle_live(AsyncWebServerRequest *request) {
 void http_handle_banks(AsyncWebServerRequest *request) {
   http_handle_globals(request);
   if (request->hasArg("bank"))  uibank  = request->arg("bank");
-  //request->send(200, "text/html", get_banks_page());
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_banks_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1626,7 +1769,6 @@ void http_handle_banks(AsyncWebServerRequest *request) {
 
 void http_handle_pedals(AsyncWebServerRequest *request) {
   http_handle_globals(request);
-  //request->send(200, "text/html", get_pedals_page());
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_pedals_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1634,7 +1776,6 @@ void http_handle_pedals(AsyncWebServerRequest *request) {
 
 void http_handle_interfaces(AsyncWebServerRequest *request) {
   http_handle_globals(request);
-  //request->send(200, "text/html", get_interfaces_page());
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_interfaces_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1643,7 +1784,6 @@ void http_handle_interfaces(AsyncWebServerRequest *request) {
 void http_handle_sequences(AsyncWebServerRequest *request) {
   http_handle_globals(request);
   if (request->hasArg("sequence"))  uisequence  = request->arg("sequence");
-  //request->send(200, "text/html", get_banks_page());
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_sequences_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1651,7 +1791,7 @@ void http_handle_sequences(AsyncWebServerRequest *request) {
 
 void http_handle_options(AsyncWebServerRequest *request) {
   http_handle_globals(request);
-  //request->send(200, "text/html", get_options_page());
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_options_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1666,8 +1806,7 @@ void http_handle_post_live(AsyncWebServerRequest *request) {
 
   blynk_refresh();
   alert = "Saved";
-  //get_live_page();
-  //request->send(200, "text/html", page);
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_live_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1705,8 +1844,7 @@ void http_handle_post_banks(AsyncWebServerRequest *request) {
   eeprom_update_profile();
   blynk_refresh();
   alert = "Saved";
-  //get_banks_page();
-  //request->send(200, "text/html", page);
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_banks_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1754,8 +1892,7 @@ void http_handle_post_pedals(AsyncWebServerRequest *request) {
   controller_setup();
   blynk_refresh();
   alert = "Saved";
-  //get_pedals_page();
-  //request->send(200, "text/html", page);
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_pedals_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1785,8 +1922,7 @@ void http_handle_post_interfaces(AsyncWebServerRequest *request) {
   eeprom_update_profile();
   blynk_refresh();
   alert = "Saved";
-  //get_interfaces_page();
-  //request->send(200, "text/html", page);
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_interfaces_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1819,8 +1955,7 @@ void http_handle_post_sequences(AsyncWebServerRequest *request) {
   eeprom_update_profile();
   blynk_refresh();
   alert = "Saved";
-  //get_sequences_page();
-  //request->send(200, "text/html", page);
+
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_sequences_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
@@ -1832,29 +1967,23 @@ void http_handle_post_options(AsyncWebServerRequest *request) {
   
   http_handle_globals(request);
 
-  if (request->arg("repeatonbankswitch") == checked) {
-    repeatOnBankSwitch = true;
-    eeprom_update_repeat_on_bank_switch_enable(true);
-    alert = "Saved";
-  }
-  else {
-    repeatOnBankSwitch = false;
-    eeprom_update_repeat_on_bank_switch_enable(false);
-    alert = "Saved";
-  }
+  tapDanceMode = (request->arg("tapdancemode") == checked);
+  eeprom_update_tap_dance(tapDanceMode);
+  tapDanceBank = true;
+  
+  repeatOnBankSwitch = (request->arg("repeatonbankswitch") == checked);
+  eeprom_update_repeat_on_bank_switch(repeatOnBankSwitch);
 
   if (request->arg("blynkcloud") == checked) {
     blynk_enable();
     eeprom_update_blynk_cloud_enable(true);
     //blynk_connect();
     //blynk_refresh();
-    alert = "Saved";
   }
   else {
     blynk_disconnect();
     blynk_disable();
     eeprom_update_blynk_cloud_enable(false);
-    alert = "Saved";
   }
 
   if (request->arg("blynkauthtoken")) {
@@ -1863,7 +1992,6 @@ void http_handle_post_options(AsyncWebServerRequest *request) {
     blynk_set_token(request->arg("blynkauthtoken"));
     //blynk_connect();
     //blynk_refresh();
-    alert = "Saved";
   }
 
   if (request->arg("mdnsdevicename") != host) {
@@ -1871,10 +1999,35 @@ void http_handle_post_options(AsyncWebServerRequest *request) {
     eeprom_update_device_name(host);
     delay(1000);
     ESP.restart();
-    alert = "Saved";
   }
-  //get_options_page();
-  //request->send(200, "text/html", page);
+
+  bool pressTimeChanged = false;
+
+  if (request->arg("presstime").toInt() != pressTime) {
+    pressTime = request->arg("presstime").toInt();
+    pressTimeChanged = true;
+    controller_setup();
+  }
+  if (request->arg("doublepresstime").toInt() != doublePressTime) {
+    doublePressTime = request->arg("doublepresstime").toInt();
+    pressTimeChanged = true;
+    controller_setup();
+  }
+  if (request->arg("longpresstime").toInt() != longPressTime) {
+    longPressTime = request->arg("longpresstime").toInt();
+    pressTimeChanged = true;
+    controller_setup();
+  }
+  if (request->arg("repeatpressttime").toInt() != repeatPressTime) {
+    repeatPressTime = request->arg("repeatpresstime").toInt();
+    pressTimeChanged = true;
+    controller_setup();
+  }
+
+  if (pressTimeChanged)
+    eeprom_update_press_time(pressTime, doublePressTime,longPressTime, repeatPressTime);
+
+  alert = "Saved";
   AsyncWebServerResponse *response = request->beginChunkedResponse("text/html", get_options_page_chunked);
   response->addHeader("Connection", "close");
   request->send(response);
